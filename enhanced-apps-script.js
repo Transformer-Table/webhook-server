@@ -94,6 +94,11 @@ const CONFIG = {
       domain: 'your-row-staging.myshopify.com',
       token: 'shpat_your_row_staging_token_here',
       themeName: 'tt-ca/ROW_Staging'
+    },
+    'DEV_STAGING_PROMO': {
+      domain: 'transformer-table-dev-staging.myshopify.com',
+      token: 'shpat_your_dev_staging_token_here',
+      themeName: 'tt-ca/DEV_STAGING_PROMO'
     }
   }
 };

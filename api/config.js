@@ -54,6 +54,12 @@ const STORE_CONFIG = {
     webhookSecret: process.env.ROW_WEBHOOK_SECRET
   },
   
+  // DEV Staging Store
+  'transformer-table-dev-staging.myshopify.com': {
+    storeName: 'DEV_STAGING_PROMO',
+    webhookSecret: process.env.DEV_STAGING_WEBHOOK_SECRET
+  },
+  
   // Add staging stores as well
   'your-us-staging.myshopify.com': {
     storeName: 'US_Staging',
