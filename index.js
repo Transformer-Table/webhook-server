@@ -134,8 +134,14 @@ app.use((req, res, next) => {
  * Verify Shopify webhook signature
  */
 function verifyShopifyWebhook(data, signature, secret) {
+  console.log('🔍 === WEBHOOK VERIFICATION DEBUG ===');
+  console.log('🔐 Has signature:', !!signature);
+  console.log('🔑 Has secret:', !!secret);
+  console.log('📦 Data length:', data ? data.length : 'No data');
+  
   if (!signature || !secret) {
-    console.log('Missing signature or secret');
+    console.log('❌ Missing signature or secret');
+    console.log('=== END VERIFICATION DEBUG ===');
     return false;
   }
 
@@ -146,12 +152,16 @@ function verifyShopifyWebhook(data, signature, secret) {
   // Remove 'sha256=' prefix from Shopify signature
   const shopifySignature = signature.replace('sha256=', '');
 
+  console.log('🔐 Shopify signature (truncated):', shopifySignature.substring(0, 10) + '...');
+  console.log('🧮 Calculated signature (truncated):', calculatedSignature.substring(0, 10) + '...');
+
   const result = crypto.timingSafeEqual(
     Buffer.from(calculatedSignature),
     Buffer.from(shopifySignature)
   );
 
-  console.log('Webhook verification result:', result);
+  console.log('✅ Verification result:', result ? 'VALID' : 'INVALID');
+  console.log('=== END VERIFICATION DEBUG ===');
   return result;
 }
 
@@ -265,13 +275,16 @@ app.get('/config', (req, res) => {
  */
 app.post('/webhook/theme-update', async (req, res) => {
   try {
-    console.log('\n=== THEME UPDATE WEBHOOK RECEIVED ===');
+    console.log('\n🚀 === THEME UPDATE WEBHOOK RECEIVED ===');
     
     const signature = req.get('X-Shopify-Hmac-Sha256');
     const shopDomain = getStoreDomain(req);
     
-    console.log('Shop domain:', shopDomain);
-    console.log('Has signature:', !!signature);
+    console.log('🌐 Shop domain:', shopDomain);
+    console.log('🔐 Has signature:', !!signature);
+    console.log('📦 Raw body length:', req.body ? req.body.length : 'No body');
+    console.log('📋 Content-Type:', req.get('Content-Type'));
+    console.log('🕒 Request timestamp:', new Date().toISOString());
 
     // Find store configuration
     const storeConfig = STORE_CONFIG[shopDomain];
@@ -286,14 +299,19 @@ app.post('/webhook/theme-update', async (req, res) => {
     console.log('Store config found:', storeConfig.storeName);
 
     // Verify webhook signature
-    if (!verifyShopifyWebhook(req.body, signature, storeConfig.webhookSecret)) {
-      console.log('Webhook verification failed');
+    const isValidSignature = verifyShopifyWebhook(req.body, signature, storeConfig.webhookSecret);
+    console.log('🔐 Webhook verification result:', isValidSignature ? '✅ VALID' : '❌ INVALID');
+    
+    if (!isValidSignature) {
+      console.log('❌ Webhook verification failed - responding with 401');
       return res.status(401).json({ error: 'Unauthorized - Invalid signature' });
     }
 
     // Parse webhook data
+    console.log('📖 Parsing webhook data...');
     const webhookData = JSON.parse(req.body.toString());
-    console.log('Webhook data:', {
+    console.log('✅ Successfully parsed webhook data');
+    console.log('📋 Basic webhook info:', {
       themeId: webhookData.id,
       themeName: webhookData.name,
       role: webhookData.role,
@@ -310,36 +328,74 @@ app.post('/webhook/theme-update', async (req, res) => {
       });
     }
 
-    // Get list of updated files (you'll need to implement this based on your needs)
+    // Get list of updated files (currently mocked for debugging)
+    console.log('📁 === GETTING UPDATED FILES ===');
     const updatedFiles = await getUpdatedThemeFiles(
       storeConfig.storeName, 
       webhookData.id, 
       webhookData.updated_at
     );
+    console.log('📋 Updated files result:', updatedFiles);
+    console.log('📊 Number of files:', updatedFiles.length);
 
     if (updatedFiles.length === 0) {
-      console.log('No relevant files updated');
+      console.log('⚠️  No relevant files updated - responding with success');
       return res.json({ 
         status: 'success', 
-        message: 'No relevant files to sync' 
+        message: 'No relevant files to sync',
+        debug: {
+          storeName: storeConfig.storeName,
+          themeId: webhookData.id,
+          reason: 'No files updated'
+        }
       });
     }
 
+    // ===========================================
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    // ===========================================
+    /*
     // Call Apps Script webhook handler
     const appsScriptResponse = await callAppsScriptWebhook(
       webhookData,
       storeConfig.storeName,
       updatedFiles
     );
+    */
 
-    console.log('=== WEBHOOK PROCESSING COMPLETE ===\n');
+    // ===========================================
+    // DEBUG: LOG COMPLETE WEBHOOK PAYLOAD
+    // ===========================================
+    console.log('\n🔍 === COMPLETE WEBHOOK DEBUG INFO ===');
+    console.log('📊 Raw webhook data:', JSON.stringify(webhookData, null, 2));
+    console.log('🏪 Store name:', storeConfig.storeName);
+    console.log('🎨 Theme ID:', webhookData.id);
+    console.log('🏷️  Theme name:', webhookData.name);
+    console.log('👑 Theme role:', webhookData.role);
+    console.log('⏰ Updated at:', webhookData.updated_at);
+    console.log('📁 Updated files (mocked):', updatedFiles);
+    console.log('🌐 Shop domain:', getStoreDomain(req));
+    console.log('🔐 Has signature:', !!req.get('X-Shopify-Hmac-Sha256'));
+    console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
+    console.log('=== END DEBUG INFO ===\n');
+
+    console.log('=== WEBHOOK PROCESSING COMPLETE (APPS SCRIPT DISABLED) ===\n');
 
     res.json({
       status: 'success',
-      storeName: storeConfig.storeName,
-      themeId: webhookData.id,
-      updatedFiles: updatedFiles,
-      appsScriptResponse: appsScriptResponse
+      message: 'Webhook received and logged (Apps Script temporarily disabled)',
+      debug: {
+        storeName: storeConfig.storeName,
+        themeId: webhookData.id,
+        themeName: webhookData.name,
+        themeRole: webhookData.role,
+        updatedAt: webhookData.updated_at,
+        updatedFiles: updatedFiles,
+        shopDomain: getStoreDomain(req),
+        hasSignature: !!req.get('X-Shopify-Hmac-Sha256'),
+        timestamp: new Date().toISOString()
+      }
+      // appsScriptResponse: appsScriptResponse // TEMPORARILY DISABLED
     });
 
   } catch (error) {
