@@ -188,31 +188,13 @@ module.exports = async (req, res) => {
 
   // Route different endpoints
   if (req.method === 'GET') {
-    if (req.url === '/' || req.url === '/health') {
-      return res.status(200).json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        message: 'Webhook handler is running'
-      });
-    }
-    
-    if (req.url === '/config') {
-      const configInfo = Object.keys(STORE_CONFIG).map(domain => ({
-        domain,
-        storeName: STORE_CONFIG[domain].storeName,
-        hasSecret: !!STORE_CONFIG[domain].webhookSecret
-      }));
-      
-      return res.status(200).json({
-        stores: configInfo,
-        appsScriptConfigured: !!process.env.APPS_SCRIPT_URL
-      });
-    }
-    
-    return res.status(404).json({
-      error: 'Not found',
-      path: req.url,
-      method: req.method
+    // Health check endpoint - works for any GET request to this function
+    return res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      message: 'Webhook handler is running',
+      url: req.url,
+      path: req.url
     });
   }
 
