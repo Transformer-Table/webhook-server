@@ -1,5 +1,36 @@
 const crypto = require('crypto');
 
+// Configure Vercel to disable automatic body parsing for webhook verification
+const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Helper function to parse JSON from raw body
+function parseJsonBody(rawBody) {
+  try {
+    return JSON.parse(rawBody.toString());
+  } catch (error) {
+    console.error('Error parsing JSON body:', error);
+    return null;
+  }
+}
+
+// Helper function to get raw body from request
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
+}
+
 // Store configuration mapping domains to store names and secrets
 const STORE_CONFIG = {
   // US Stores
@@ -147,11 +178,11 @@ function verifyShopifyWebhook(data, signature, secret) {
 /**
  * Extract store domain from Shopify headers
  */
-function getStoreDomain(req) {
+function getStoreDomain(req, parsedBody) {
   // Try to get domain from Shopify headers
   const shopDomain = req.headers['x-shopify-shop-domain'] || 
                     req.headers['x-shopify-shop'] ||
-                    req.body?.domain;
+                    parsedBody?.domain;
   
   console.log('Extracted shop domain:', shopDomain);
   return shopDomain;
@@ -190,6 +221,22 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  // Get raw body for webhook verification
+  let rawBody = '';
+  let parsedBody = null;
+  
+  if (req.method === 'POST') {
+    try {
+      rawBody = await getRawBody(req);
+      parsedBody = parseJsonBody(rawBody);
+      console.log('📦 Raw body length:', rawBody.length);
+      console.log('🔍 Parsed body successfully:', !!parsedBody);
+    } catch (error) {
+      console.error('Error getting raw body:', error);
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+  }
+
   console.log(`🌐 ${new Date().toISOString()} - ${req.method} ${req.url}`);
 
   // Route different endpoints
@@ -210,11 +257,11 @@ module.exports = async (req, res) => {
       console.log('\n🚀 === THEME UPDATE WEBHOOK RECEIVED ===');
       
       const signature = req.headers['x-shopify-hmac-sha256'];
-      const shopDomain = getStoreDomain(req);
+      const shopDomain = getStoreDomain(req, parsedBody);
       
       console.log('🌐 Shop domain:', shopDomain);
       console.log('🔐 Has signature:', !!signature);
-      console.log('📦 Raw body length:', req.body ? JSON.stringify(req.body).length : 'No body');
+      console.log('📦 Raw body length:', rawBody.length);
       console.log('📋 Content-Type:', req.headers['content-type']);
       console.log('🕒 Request timestamp:', new Date().toISOString());
 
@@ -230,11 +277,8 @@ module.exports = async (req, res) => {
 
       console.log('Store config found:', storeConfig.storeName);
 
-      // Convert body to string for verification
-      const bodyString = JSON.stringify(req.body);
-
-      // Verify webhook signature
-      const isValidSignature = verifyShopifyWebhook(bodyString, signature, storeConfig.webhookSecret);
+      // Verify webhook signature using raw body
+      const isValidSignature = verifyShopifyWebhook(rawBody, signature, storeConfig.webhookSecret);
       console.log('🔐 Webhook verification result:', isValidSignature ? '✅ VALID' : '❌ INVALID');
       
       if (!isValidSignature) {
@@ -244,7 +288,7 @@ module.exports = async (req, res) => {
 
       // Parse webhook data
       console.log('📖 Processing webhook data...');
-      const webhookData = req.body;
+      const webhookData = parsedBody;
       console.log('✅ Successfully processed webhook data');
       console.log('📋 Basic webhook info:', {
         themeId: webhookData.id,
@@ -297,7 +341,7 @@ module.exports = async (req, res) => {
       console.log('👑 Theme role:', webhookData.role);
       console.log('⏰ Updated at:', webhookData.updated_at);
       console.log('📁 Updated files (mocked):', updatedFiles);
-      console.log('🌐 Shop domain:', getStoreDomain(req));
+      console.log('🌐 Shop domain:', getStoreDomain(req, parsedBody));
       console.log('🔐 Has signature:', !!req.headers['x-shopify-hmac-sha256']);
       console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
       console.log('=== END DEBUG INFO ===\n');
@@ -314,7 +358,7 @@ module.exports = async (req, res) => {
           themeRole: webhookData.role,
           updatedAt: webhookData.updated_at,
           updatedFiles: updatedFiles,
-          shopDomain: getStoreDomain(req),
+          shopDomain: getStoreDomain(req, parsedBody),
           hasSignature: !!req.headers['x-shopify-hmac-sha256'],
           timestamp: new Date().toISOString()
         }
@@ -335,4 +379,7 @@ module.exports = async (req, res) => {
     error: 'Method not allowed',
     method: req.method
   });
-}; 
+};
+
+// Export config for Vercel
+module.exports.config = config; 
