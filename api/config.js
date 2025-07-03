@@ -4,6 +4,11 @@ const BRANCH_CONFIG = {
     storeName: 'DEV_STAGING_PROMO',
     shopifyDomain: 'transformer-table-dev-staging.myshopify.com',
     themeName: 'tt-ca/DEV_STAGING_PROMO'
+  },
+  'ROW_Staging': {
+    storeName: 'ROW_Staging', 
+    shopifyDomain: 'transformer-table-rest-of-world-staging.myshopify.com',
+    themeName: 'tt-ca/ROW_Staging'
   }
   // Add more branches as needed:
   // 'main': {

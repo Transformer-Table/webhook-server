@@ -31,12 +31,19 @@ async function getRawBody(req) {
   });
 }
 
+const { processChangedThemeFiles } = require('./shopify-client');
+
 // Branch to store mapping for GitHub webhooks
 const BRANCH_CONFIG = {
   'DEV_STAGING_PROMO': {
     storeName: 'DEV_STAGING_PROMO',
     shopifyDomain: 'transformer-table-dev-staging.myshopify.com',
     themeName: 'tt-ca/DEV_STAGING_PROMO'
+  },
+  'ROW_Staging': {
+    storeName: 'ROW_Staging', 
+    shopifyDomain: 'transformer-table-rest-of-world-staging.myshopify.com',
+    themeName: 'tt-ca/ROW_Staging'
   }
   // Add more branches as needed:
   // 'main': {
@@ -124,6 +131,50 @@ function filterThemeFiles(files) {
   return files.filter(file => 
     themeFilePatterns.some(pattern => pattern.test(file))
   );
+}
+
+/**
+ * Send extracted theme data to Google Apps Script
+ */
+async function sendToAppsScript(extractedData, branchConfig, branchName) {
+  const appsScriptUrl = process.env.APPS_SCRIPT_URL;
+  
+  if (!appsScriptUrl) {
+    throw new Error('APPS_SCRIPT_URL environment variable not configured');
+  }
+
+  console.log(`📧 Sending ${extractedData.length} extracted settings to Apps Script...`);
+
+  const fetch = (await import('node-fetch')).default;
+  
+  const payload = {
+    action: 'updateFromWebhook',
+    data: {
+      storeName: branchConfig.storeName,
+      shopifyDomain: branchConfig.shopifyDomain,
+      themeName: branchConfig.themeName,
+      branch: branchName,
+      extractedSettings: extractedData,
+      timestamp: new Date().toISOString()
+    }
+  };
+
+  const response = await fetch(appsScriptUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Apps Script request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const result = await response.text();
+  console.log(`✅ Apps Script response:`, result);
+  
+  return result;
 }
 
 module.exports = async (req, res) => {
@@ -271,23 +322,83 @@ module.exports = async (req, res) => {
       console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
       console.log('=== END DEBUG INFO ===\n');
 
-      console.log('=== GITHUB WEBHOOK PROCESSING COMPLETE (APPS SCRIPT DISABLED) ===\n');
+      // ===========================================
+      // SHOPIFY API INTEGRATION & APPS SCRIPT
+      // ===========================================
+      console.log('🔄 === PROCESSING THEME FILES WITH SHOPIFY API ===');
+      
+      try {
+        // Fetch and extract data from Shopify theme files
+        const extractedData = await processChangedThemeFiles(
+          branchConfig.shopifyDomain,
+          branchConfig.themeName,
+          themeFiles
+        );
 
-      return res.status(200).json({
-        status: 'success',
-        message: 'GitHub webhook received and logged (Apps Script temporarily disabled)',
-        debug: {
-          repository: pushData.repository?.full_name,
-          branch: branchName,
-          storeName: branchConfig.storeName,
-          themeName: branchConfig.themeName,
-          shopifyDomain: branchConfig.shopifyDomain,
-          commits: pushData.commits?.length || 0,
-          changedFiles: allChangedFiles,
-          themeFiles: themeFiles,
-          timestamp: new Date().toISOString()
+        if (extractedData.length === 0) {
+          console.log('⚠️  No settings extracted from theme files');
+          return res.status(200).json({
+            status: 'success',
+            message: 'No settings found to sync',
+            debug: {
+              repository: pushData.repository?.full_name,
+              branch: branchName,
+              storeName: branchConfig.storeName,
+              themeName: branchConfig.themeName,
+              shopifyDomain: branchConfig.shopifyDomain,
+              commits: pushData.commits?.length || 0,
+              changedFiles: allChangedFiles,
+              themeFiles: themeFiles,
+              extractedSettings: extractedData.length,
+              timestamp: new Date().toISOString()
+            }
+          });
         }
-      });
+
+        // Send extracted data to Apps Script
+        console.log('📧 === SENDING TO APPS SCRIPT ===');
+        const appsScriptResponse = await sendToAppsScript(extractedData, branchConfig, branchName);
+
+        console.log('✅ === GITHUB WEBHOOK PROCESSING COMPLETE ===\n');
+
+        return res.status(200).json({
+          status: 'success',
+          message: 'Theme files processed and Google Sheets updated successfully',
+          debug: {
+            repository: pushData.repository?.full_name,
+            branch: branchName,
+            storeName: branchConfig.storeName,
+            themeName: branchConfig.themeName,
+            shopifyDomain: branchConfig.shopifyDomain,
+            commits: pushData.commits?.length || 0,
+            changedFiles: allChangedFiles,
+            themeFiles: themeFiles,
+            extractedSettings: extractedData.length,
+            appsScriptResponse: appsScriptResponse,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+      } catch (shopifyError) {
+        console.error('❌ Error processing Shopify files:', shopifyError.message);
+        
+        return res.status(500).json({
+          status: 'error',
+          message: 'Failed to process theme files from Shopify',
+          error: shopifyError.message,
+          debug: {
+            repository: pushData.repository?.full_name,
+            branch: branchName,
+            storeName: branchConfig.storeName,
+            themeName: branchConfig.themeName,
+            shopifyDomain: branchConfig.shopifyDomain,
+            commits: pushData.commits?.length || 0,
+            changedFiles: allChangedFiles,
+            themeFiles: themeFiles,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
 
     } catch (error) {
       console.error('GitHub webhook processing error:', error);
