@@ -136,7 +136,7 @@ function filterThemeFiles(files) {
 /**
  * Send extracted theme data to Google Apps Script
  */
-async function sendToAppsScript(extractedData, branchConfig, branchName) {
+async function sendToAppsScript(extractedData, branchConfig, branchName, updatedFiles) {
   const appsScriptUrl = process.env.APPS_SCRIPT_URL;
   
   if (!appsScriptUrl) {
@@ -157,7 +157,7 @@ async function sendToAppsScript(extractedData, branchConfig, branchName) {
       extractedSettings: extractedData,
       timestamp: new Date().toISOString()
     },
-    updatedFiles: themeFiles
+    updatedFiles: updatedFiles
   };
 
   const response = await fetch(appsScriptUrl, {
@@ -358,7 +358,7 @@ module.exports = async (req, res) => {
 
         // Send extracted data to Apps Script
         console.log('📧 === SENDING TO APPS SCRIPT ===');
-        const appsScriptResponse = await sendToAppsScript(extractedData, branchConfig, branchName);
+        const appsScriptResponse = await sendToAppsScript(extractedData, branchConfig, branchName, themeFiles);
 
         console.log('✅ === GITHUB WEBHOOK PROCESSING COMPLETE ===\n');
 
