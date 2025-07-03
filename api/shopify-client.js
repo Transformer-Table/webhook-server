@@ -24,7 +24,7 @@ const themeFileQuery = `
 // Query to get themes (to find the correct theme ID)
 const themesQuery = `
   query getThemes {
-    themes(first: 10) {
+    themes(first: 50) {
       nodes {
         id
         name
@@ -66,27 +66,49 @@ async function makeShopifyGraphQLRequest(shopifyDomain, accessToken, query, vari
 }
 
 /**
- * Find theme by name
+ * Find theme by name, prioritizing MAIN (published) themes
  */
 async function findThemeByName(shopifyDomain, accessToken, themeName) {
   console.log(`🔍 Finding theme "${themeName}" in store ${shopifyDomain}`);
   
   const data = await makeShopifyGraphQLRequest(shopifyDomain, accessToken, themesQuery);
   
-  // Look for theme by name - could be exact match or partial match
-  const theme = data.themes.nodes.find(t => 
+  // Log all available themes for debugging
+  console.log(`📋 Available themes in ${shopifyDomain}:`);
+  data.themes.nodes.forEach(t => {
+    console.log(`   - ${t.name} (${t.role}) - ${t.id}`);
+  });
+  
+  // Find all themes that match the name
+  const matchingThemes = data.themes.nodes.filter(t => 
     t.name === themeName || 
     t.name.includes(themeName) ||
     themeName.includes(t.name)
   );
   
-  if (!theme) {
-    console.log(`Available themes in ${shopifyDomain}:`, data.themes.nodes.map(t => `${t.name} (${t.role})`));
+  if (matchingThemes.length === 0) {
     throw new Error(`Theme "${themeName}" not found in store ${shopifyDomain}`);
   }
   
-  console.log(`✅ Found theme: ${theme.name} (${theme.role}) - ID: ${theme.id}`);
-  return theme;
+  // Prioritize themes by role: MAIN first, then others
+  const roleOrder = ['MAIN', 'PUBLISHED', 'UNPUBLISHED', 'DEVELOPMENT'];
+  
+  let selectedTheme = null;
+  for (const role of roleOrder) {
+    selectedTheme = matchingThemes.find(t => t.role === role);
+    if (selectedTheme) {
+      console.log(`✅ Found ${role} theme: ${selectedTheme.name} (${selectedTheme.role}) - ID: ${selectedTheme.id}`);
+      break;
+    }
+  }
+  
+  // If no theme found with preferred roles, use the first match
+  if (!selectedTheme) {
+    selectedTheme = matchingThemes[0];
+    console.log(`⚠️  Using fallback theme: ${selectedTheme.name} (${selectedTheme.role}) - ID: ${selectedTheme.id}`);
+  }
+  
+  return selectedTheme;
 }
 
 /**
