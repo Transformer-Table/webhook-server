@@ -148,15 +148,16 @@ async function sendToAppsScript(extractedData, branchConfig, branchName) {
   const fetch = (await import('node-fetch')).default;
   
   const payload = {
-    action: 'updateFromWebhook',
-    data: {
-      storeName: branchConfig.storeName,
+    action: 'webhook_theme_update',
+    storeName: branchConfig.storeName,
+    themeData: {
       shopifyDomain: branchConfig.shopifyDomain,
       themeName: branchConfig.themeName,
       branch: branchName,
       extractedSettings: extractedData,
       timestamp: new Date().toISOString()
-    }
+    },
+    updatedFiles: themeFiles
   };
 
   const response = await fetch(appsScriptUrl, {
