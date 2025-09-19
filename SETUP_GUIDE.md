@@ -34,7 +34,7 @@ GITHUB_WEBHOOK_SECRET=your_github_webhook_secret
 # Google Apps Script
 APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbws33y8g_nhVDayDi4uo9IWbO2zBdkdcucyougNER0FnFso4ajTFZ_3WrYKq8o0EaWz/exec
 
-# Shopify Configuration for DEV_STAGING
+# Shopify Configuration for DEV_STAGING_PROMO
 DEV_STAGING_DOMAIN=your-dev-staging-store.myshopify.com
 DEV_STAGING_ACCESS_TOKEN=your_dev_staging_shopify_access_token
 

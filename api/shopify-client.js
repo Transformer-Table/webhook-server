@@ -218,30 +218,21 @@ function extractSectionsAndSettings(content, filename) {
  * Get Shopify access token for a store
  */
 function getStoreAccessToken(shopifyDomain) {
-  // Build dynamic mapping from environment variables
+  // Build completely dynamic mapping from environment variables
+  // Pattern: {PREFIX}_DOMAIN and {PREFIX}_ACCESS_TOKEN
   const domainToEnvVar = {};
   
-  // Check for DEV_STAGING configuration
-  if (process.env.DEV_STAGING_DOMAIN && process.env.DEV_STAGING_ACCESS_TOKEN) {
-    domainToEnvVar[process.env.DEV_STAGING_DOMAIN] = 'DEV_STAGING_ACCESS_TOKEN';
-  }
-  
-  // Check for ROW_STAGING configuration
-  if (process.env.ROW_STAGING_DOMAIN && process.env.ROW_STAGING_ACCESS_TOKEN) {
-    domainToEnvVar[process.env.ROW_STAGING_DOMAIN] = 'ROW_STAGING_ACCESS_TOKEN';
-  }
-  
-  // Add support for additional domains from environment variables
-  // Pattern: {PREFIX}_DOMAIN and {PREFIX}_ACCESS_TOKEN
   Object.keys(process.env).forEach(key => {
     if (key.endsWith('_DOMAIN')) {
       const prefix = key.replace('_DOMAIN', '');
       const tokenKey = `${prefix}_ACCESS_TOKEN`;
-      if (process.env[tokenKey]) {
+      if (process.env[tokenKey] && process.env[key]) {
         domainToEnvVar[process.env[key]] = tokenKey;
       }
     }
   });
+  
+  console.log(`🔍 Available store domains: ${Object.keys(domainToEnvVar).join(', ')}`);
   
   const envVarName = domainToEnvVar[shopifyDomain];
   if (!envVarName) {
@@ -254,6 +245,7 @@ function getStoreAccessToken(shopifyDomain) {
     throw new Error(`Access token not found in environment variable: ${envVarName}`);
   }
   
+  console.log(`✅ Found access token for domain: ${shopifyDomain}`);
   return accessToken;
 }
 
