@@ -3,7 +3,7 @@ const BRANCH_CONFIG = {
   'DEV_STAGING_PROMO': {
     storeName: 'DEV_STAGING_PROMO',
     shopifyDomain: process.env.DEV_STAGING_DOMAIN,
-    themeName: 'tt-ca/DEV_STAGING_PROMO'
+    themeName: 'tt-ca/DEV_STAGING_PROMO USE ME'
   },
   'GCC': {
     storeName: 'GCC',
