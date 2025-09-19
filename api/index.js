@@ -37,18 +37,23 @@ const { processChangedThemeFiles } = require('./shopify-client');
 const BRANCH_CONFIG = {
   'DEV_STAGING_PROMO': {
     storeName: 'DEV_STAGING_PROMO',
-    shopifyDomain: 'transformer-table-dev-staging.myshopify.com',
+    shopifyDomain: process.env.DEV_STAGING_DOMAIN,
     themeName: 'tt-ca/DEV_STAGING_PROMO'
   },
-  'ROW_Staging': {
-    storeName: 'ROW_Staging', 
-    shopifyDomain: 'transformer-table-rest-of-world-staging.myshopify.com',
+  'GCC': {
+    storeName: 'GCC',
+    shopifyDomain: process.env.GCC_DOMAIN,
+    themeName: 'tt-ca/GCC_Staging'
+  },
+  'ROW': {
+    storeName: 'ROW',
+    shopifyDomain: process.env.ROW_DOMAIN,
     themeName: 'tt-ca/ROW_Staging'
   }
   // Add more branches as needed:
   // 'main': {
   //   storeName: 'PRODUCTION',
-  //   shopifyDomain: 'your-main-store.myshopify.com',
+  //   shopifyDomain: process.env.PRODUCTION_DOMAIN,
   //   themeName: 'tt-ca/PRODUCTION'
   // }
 };
