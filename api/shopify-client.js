@@ -164,46 +164,129 @@ function extractSectionsAndSettings(content, filename) {
     
     // Parse the cleaned JSON content
     const jsonContent = JSON.parse(cleanContent);
-    
-    const sections = jsonContent.sections || {};
     const extractedData = [];
     
-    // Extract all sections and their settings/blocks
-    Object.keys(sections).forEach(sectionKey => {
-      const section = sections[sectionKey];
+    // Handle config/settings_data.json differently
+    if (filename === 'config/settings_data.json') {
+      console.log('📋 Processing settings_data.json file');
       
-      if (section.settings) {
-        // Extract section settings
-        Object.keys(section.settings).forEach(settingKey => {
+      // Extract from 'current' object (theme settings)
+      if (jsonContent.current) {
+        Object.keys(jsonContent.current).forEach(settingKey => {
           extractedData.push({
             filename: filename,
-            sectionName: sectionKey,
-            blockName: '', // Empty for section-level settings
+            sectionName: 'current', // Use 'current' as section name
+            blockName: '', // Empty for theme settings
             settingName: settingKey,
-            settingValue: section.settings[settingKey]
+            settingValue: jsonContent.current[settingKey]
           });
         });
       }
       
-      // Extract block settings
-      if (section.blocks) {
-        Object.keys(section.blocks).forEach(blockKey => {
-          const block = section.blocks[blockKey];
+      // Extract from sections if they exist in settings_data.json
+      if (jsonContent.sections) {
+        Object.keys(jsonContent.sections).forEach(sectionKey => {
+          const section = jsonContent.sections[sectionKey];
           
-          if (block.settings) {
-            Object.keys(block.settings).forEach(settingKey => {
+          if (section.settings) {
+            Object.keys(section.settings).forEach(settingKey => {
               extractedData.push({
                 filename: filename,
                 sectionName: sectionKey,
-                blockName: blockKey,
+                blockName: '',
                 settingName: settingKey,
-                settingValue: block.settings[settingKey]
+                settingValue: section.settings[settingKey]
               });
+            });
+          }
+          
+          if (section.blocks) {
+            Object.keys(section.blocks).forEach(blockKey => {
+              const block = section.blocks[blockKey];
+              if (block.settings) {
+                Object.keys(block.settings).forEach(settingKey => {
+                  extractedData.push({
+                    filename: filename,
+                    sectionName: sectionKey,
+                    blockName: blockKey,
+                    settingName: settingKey,
+                    settingValue: block.settings[settingKey]
+                  });
+                });
+              }
             });
           }
         });
       }
-    });
+    } else if (filename.startsWith('locales/') && filename.endsWith('.json')) {
+      console.log('📋 Processing locale file');
+      
+      // Handle locale files with nested structure
+      function extractLocaleSettings(obj, currentPath = '') {
+        Object.keys(obj).forEach(key => {
+          const fullPath = currentPath ? `${currentPath}.${key}` : key;
+          const value = obj[key];
+          
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Recursively process nested objects
+            extractLocaleSettings(value, fullPath);
+          } else {
+            // This is a leaf value, extract it
+            extractedData.push({
+              filename: filename,
+              sectionName: currentPath || key, // Use the parent path as section
+              blockName: '', // Empty for locale files
+              settingName: currentPath ? key : fullPath, // Use key as setting name
+              settingValue: value
+            });
+          }
+        });
+      }
+      
+      extractLocaleSettings(jsonContent);
+      
+    } else {
+      // Handle regular template files
+      console.log('📋 Processing regular template file');
+      const sections = jsonContent.sections || {};
+      
+      // Extract all sections and their settings/blocks
+      Object.keys(sections).forEach(sectionKey => {
+        const section = sections[sectionKey];
+        
+        if (section.settings) {
+          // Extract section settings
+          Object.keys(section.settings).forEach(settingKey => {
+            extractedData.push({
+              filename: filename,
+              sectionName: sectionKey,
+              blockName: '', // Empty for section-level settings
+              settingName: settingKey,
+              settingValue: section.settings[settingKey]
+            });
+          });
+        }
+        
+        // Extract block settings
+        if (section.blocks) {
+          Object.keys(section.blocks).forEach(blockKey => {
+            const block = section.blocks[blockKey];
+            
+            if (block.settings) {
+              Object.keys(block.settings).forEach(settingKey => {
+                extractedData.push({
+                  filename: filename,
+                  sectionName: sectionKey,
+                  blockName: blockKey,
+                  settingName: settingKey,
+                  settingValue: block.settings[settingKey]
+                });
+              });
+            }
+          });
+        }
+      });
+    }
     
     console.log(`📊 Extracted ${extractedData.length} settings from ${filename}`);
     return extractedData;
