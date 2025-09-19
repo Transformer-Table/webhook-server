@@ -16,10 +16,10 @@ This guide explains how to configure the webhook server for bidirectional Shopif
 - **Theme**: `tt-ca/GCC_Staging`
 - **Sheet**: `GCC`
 
-### ROW
-- **Branch**: `ROW`
-- **Store**: Configured via `ROW_DOMAIN` environment variable
-- **Theme**: `tt-ca/ROW_Staging`
+### ROW_Staging
+- **Branch**: `ROW_Staging`
+- **Store**: ROW (configured via `ROW_DOMAIN` environment variable)
+- **Theme**: `tt-ca/ROW_Staging` (unpublished theme)
 - **Sheet**: `ROW`
 
 ## Required Environment Variables

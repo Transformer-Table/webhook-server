@@ -10,7 +10,7 @@ const BRANCH_CONFIG = {
     shopifyDomain: process.env.GCC_DOMAIN,
     themeName: 'tt-ca/GCC_Staging'
   },
-  'ROW': {
+  'ROW_Staging': {
     storeName: 'ROW',
     shopifyDomain: process.env.ROW_DOMAIN,
     themeName: 'tt-ca/ROW_Staging'
