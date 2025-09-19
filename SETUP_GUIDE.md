@@ -6,15 +6,21 @@ This guide explains how to configure the webhook server for bidirectional Shopif
 
 ### DEV_STAGING_PROMO
 - **Branch**: `DEV_STAGING_PROMO`
-- **Store**: `transformer-table-dev-staging.myshopify.com`
+- **Store**: Configured via `DEV_STAGING_DOMAIN` environment variable
 - **Theme**: `tt-ca/DEV_STAGING_PROMO`
 - **Sheet**: `DEV_STAGING_PROMO`
 
-### ROW_Staging
-- **Branch**: `ROW_Staging`
-- **Store**: `transformer-table-rest-of-world-staging.myshopify.com`
+### GCC
+- **Branch**: `GCC`
+- **Store**: Configured via `GCC_DOMAIN` environment variable
+- **Theme**: `tt-ca/GCC_Staging`
+- **Sheet**: `GCC`
+
+### ROW
+- **Branch**: `ROW`
+- **Store**: Configured via `ROW_DOMAIN` environment variable
 - **Theme**: `tt-ca/ROW_Staging`
-- **Sheet**: `ROW_Staging`
+- **Sheet**: `ROW`
 
 ## Required Environment Variables
 
@@ -28,10 +34,33 @@ GITHUB_WEBHOOK_SECRET=your_github_webhook_secret
 # Google Apps Script
 APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbws33y8g_nhVDayDi4uo9IWbO2zBdkdcucyougNER0FnFso4ajTFZ_3WrYKq8o0EaWz/exec
 
-# Shopify Access Tokens
+# Shopify Configuration for DEV_STAGING
+DEV_STAGING_DOMAIN=your-dev-staging-store.myshopify.com
 DEV_STAGING_ACCESS_TOKEN=your_dev_staging_shopify_access_token
-ROW_STAGING_ACCESS_TOKEN=your_row_staging_shopify_access_token
+
+# Shopify Configuration for GCC
+GCC_DOMAIN=your-gcc-store.myshopify.com
+GCC_ACCESS_TOKEN=your_gcc_shopify_access_token
+
+# Shopify Configuration for ROW
+ROW_DOMAIN=your-row-store.myshopify.com
+ROW_ACCESS_TOKEN=your_row_shopify_access_token
+
+# Additional stores can be added using the pattern:
+# {PREFIX}_DOMAIN=your-store.myshopify.com
+# {PREFIX}_ACCESS_TOKEN=your_access_token
+# {PREFIX}_THEME_NAME=your-theme-name
 ```
+
+### Environment Variable Patterns
+
+The system now supports dynamic configuration through environment variables:
+
+- **Domain Configuration**: `{PREFIX}_DOMAIN` - The Shopify store domain
+- **Access Token**: `{PREFIX}_ACCESS_TOKEN` - The Shopify access token for the store
+- **Theme Name**: `{PREFIX}_THEME_NAME` - The theme name to sync with (optional, falls back to hardcoded values)
+
+This allows you to easily add new stores without modifying the code.
 
 ## How It Works
 
