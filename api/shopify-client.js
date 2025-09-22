@@ -177,8 +177,42 @@ function extractSectionsAndSettings(content, filename) {
         if (rootKey === 'current' && typeof rootValue === 'object' && rootValue !== null) {
           // Extract from 'current' object (theme settings)
           Object.keys(rootValue).forEach(settingKey => {
-            // Skip nested objects like sections within current
-            if (typeof rootValue[settingKey] !== 'object') {
+            if (settingKey === 'sections' && typeof rootValue[settingKey] === 'object') {
+              // Handle nested sections within current
+              Object.keys(rootValue[settingKey]).forEach(sectionKey => {
+                const section = rootValue[settingKey][sectionKey];
+                
+                if (section.settings) {
+                  Object.keys(section.settings).forEach(nestedSettingKey => {
+                    extractedData.push({
+                      filename: filename,
+                      sectionName: `current.sections.${sectionKey}`, // ✅ Create the format your sheet expects
+                      blockName: '',
+                      settingName: nestedSettingKey,
+                      settingValue: section.settings[nestedSettingKey]
+                    });
+                  });
+                }
+                
+                if (section.blocks) {
+                  Object.keys(section.blocks).forEach(blockKey => {
+                    const block = section.blocks[blockKey];
+                    if (block.settings) {
+                      Object.keys(block.settings).forEach(nestedSettingKey => {
+                        extractedData.push({
+                          filename: filename,
+                          sectionName: `current.sections.${sectionKey}`,
+                          blockName: blockKey,
+                          settingName: nestedSettingKey,
+                          settingValue: block.settings[nestedSettingKey]
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+            } else if (typeof rootValue[settingKey] !== 'object') {
+              // Handle regular current settings
               extractedData.push({
                 filename: filename,
                 sectionName: 'current',
