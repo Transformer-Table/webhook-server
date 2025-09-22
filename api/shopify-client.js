@@ -79,9 +79,16 @@ async function findThemeByName(shopifyDomain, accessToken, themeName) {
     console.log(`   - ${t.name} (${t.role}) - ${t.id}`);
   });
   
-  // Find all themes that match the name
+  // 🎯 STEP 1: Try exact match first (highest priority)
+  let selectedTheme = data.themes.nodes.find(t => t.name === themeName);
+  
+  if (selectedTheme) {
+    console.log(`✅ Found EXACT match theme: ${selectedTheme.name} (${selectedTheme.role}) - ID: ${selectedTheme.id}`);
+    return selectedTheme;
+  }
+  
+  // 🎯 STEP 2: If no exact match, try partial matching
   const matchingThemes = data.themes.nodes.filter(t => 
-    t.name === themeName || 
     t.name.includes(themeName) ||
     themeName.includes(t.name)
   );
@@ -90,14 +97,13 @@ async function findThemeByName(shopifyDomain, accessToken, themeName) {
     throw new Error(`Theme "${themeName}" not found in store ${shopifyDomain}`);
   }
   
-  // Prioritize themes by role: MAIN first, then others
-  const roleOrder = ['MAIN', 'PUBLISHED', 'UNPUBLISHED', 'DEVELOPMENT'];
+  // 🎯 STEP 3: For partial matches, prioritize by role (but prefer non-MAIN for safety)
+  const roleOrder = ['UNPUBLISHED', 'PUBLISHED', 'DEVELOPMENT', 'MAIN'];
   
-  let selectedTheme = null;
   for (const role of roleOrder) {
     selectedTheme = matchingThemes.find(t => t.role === role);
     if (selectedTheme) {
-      console.log(`✅ Found ${role} theme: ${selectedTheme.name} (${selectedTheme.role}) - ID: ${selectedTheme.id}`);
+      console.log(`✅ Found ${role} theme (partial match): ${selectedTheme.name} (${selectedTheme.role}) - ID: ${selectedTheme.id}`);
       break;
     }
   }
