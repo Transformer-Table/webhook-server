@@ -170,54 +170,81 @@ function extractSectionsAndSettings(content, filename) {
     if (filename === 'config/settings_data.json') {
       console.log('📋 Processing settings_data.json file');
       
-      // Extract from 'current' object (theme settings)
-      if (jsonContent.current) {
-        Object.keys(jsonContent.current).forEach(settingKey => {
-          extractedData.push({
-            filename: filename,
-            sectionName: 'current', // Use 'current' as section name
-            blockName: '', // Empty for theme settings
-            settingName: settingKey,
-            settingValue: jsonContent.current[settingKey]
-          });
-        });
-      }
-      
-      // Extract from sections if they exist in settings_data.json
-      if (jsonContent.sections) {
-        Object.keys(jsonContent.sections).forEach(sectionKey => {
-          const section = jsonContent.sections[sectionKey];
-          
-          if (section.settings) {
-            Object.keys(section.settings).forEach(settingKey => {
+      // Process all root-level keys
+      Object.keys(jsonContent).forEach(rootKey => {
+        const rootValue = jsonContent[rootKey];
+        
+        if (rootKey === 'current' && typeof rootValue === 'object' && rootValue !== null) {
+          // Extract from 'current' object (theme settings)
+          Object.keys(rootValue).forEach(settingKey => {
+            // Skip nested objects like sections within current
+            if (typeof rootValue[settingKey] !== 'object') {
               extractedData.push({
                 filename: filename,
-                sectionName: sectionKey,
+                sectionName: 'current',
                 blockName: '',
                 settingName: settingKey,
-                settingValue: section.settings[settingKey]
+                settingValue: rootValue[settingKey]
               });
-            });
-          }
-          
-          if (section.blocks) {
-            Object.keys(section.blocks).forEach(blockKey => {
-              const block = section.blocks[blockKey];
-              if (block.settings) {
-                Object.keys(block.settings).forEach(settingKey => {
-                  extractedData.push({
-                    filename: filename,
-                    sectionName: sectionKey,
-                    blockName: blockKey,
-                    settingName: settingKey,
-                    settingValue: block.settings[settingKey]
-                  });
+            }
+          });
+        } else if (rootKey === 'sections' && typeof rootValue === 'object' && rootValue !== null) {
+          // Extract from sections if they exist in settings_data.json
+          Object.keys(rootValue).forEach(sectionKey => {
+            const section = rootValue[sectionKey];
+            
+            if (section.settings) {
+              Object.keys(section.settings).forEach(settingKey => {
+                extractedData.push({
+                  filename: filename,
+                  sectionName: sectionKey,
+                  blockName: '',
+                  settingName: settingKey,
+                  settingValue: section.settings[settingKey]
                 });
-              }
+              });
+            }
+            
+            if (section.blocks) {
+              Object.keys(section.blocks).forEach(blockKey => {
+                const block = section.blocks[blockKey];
+                if (block.settings) {
+                  Object.keys(block.settings).forEach(settingKey => {
+                    extractedData.push({
+                      filename: filename,
+                      sectionName: sectionKey,
+                      blockName: blockKey,
+                      settingName: settingKey,
+                      settingValue: block.settings[settingKey]
+                    });
+                  });
+                }
+              });
+            }
+          });
+        } else if (rootKey.startsWith('current.') && typeof rootValue === 'object' && rootValue !== null) {
+          // ✅ HANDLE SPECIAL CASE: current.sections.header, current.sections.footer, etc.
+          console.log(`📋 Processing special nested section: ${rootKey}`);
+          Object.keys(rootValue).forEach(settingKey => {
+            extractedData.push({
+              filename: filename,
+              sectionName: rootKey, // Use the full key like "current.sections.header"
+              blockName: '',
+              settingName: settingKey,
+              settingValue: rootValue[settingKey]
             });
-          }
-        });
-      }
+          });
+        } else if (typeof rootValue !== 'object') {
+          // Handle any other root-level simple settings
+          extractedData.push({
+            filename: filename,
+            sectionName: 'root',
+            blockName: '',
+            settingName: rootKey,
+            settingValue: rootValue
+          });
+        }
+      });
     } else if (filename.startsWith('locales/') && filename.endsWith('.json')) {
       console.log('📋 Processing locale file');
       
