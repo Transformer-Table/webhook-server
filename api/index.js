@@ -333,6 +333,12 @@ module.exports = async (req, res) => {
       // ===========================================
       console.log('🔄 === PROCESSING THEME FILES WITH SHOPIFY API ===');
       
+      // 🕒 Add configurable delay to allow Shopify theme sync to complete
+      const SHOPIFY_SYNC_DELAY = 5000; // Default 10 seconds
+      console.log(`⏳ Waiting ${SHOPIFY_SYNC_DELAY}ms for Shopify theme sync to complete...`);
+      await new Promise(resolve => setTimeout(resolve, SHOPIFY_SYNC_DELAY));
+      console.log('✅ Delay complete, proceeding with Shopify API calls');
+      
       try {
         // Fetch and extract data from Shopify theme files
         const extractedData = await processChangedThemeFiles(

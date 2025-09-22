@@ -59,8 +59,18 @@ The system now supports dynamic configuration through environment variables:
 - **Domain Configuration**: `{PREFIX}_DOMAIN` - The Shopify store domain
 - **Access Token**: `{PREFIX}_ACCESS_TOKEN` - The Shopify access token for the store
 - **Theme Name**: `{PREFIX}_THEME_NAME` - The theme name to sync with (optional, falls back to hardcoded values)
+- **Sync Delay**: `SHOPIFY_SYNC_DELAY_MS` - Delay in milliseconds before reading Shopify theme (default: 10000ms/10 seconds)
 
 This allows you to easily add new stores without modifying the code.
+
+### Timing Configuration
+
+The webhook includes a configurable delay to ensure Shopify themes are fully synced before reading:
+
+- **SHOPIFY_SYNC_DELAY_MS**: Time to wait (in milliseconds) after GitHub push before reading from Shopify
+- **Default**: 10,000ms (10 seconds)
+- **Recommended**: 5,000-15,000ms depending on your Shopify sync speed
+- **Purpose**: Prevents reading stale theme data before GitHub changes propagate to Shopify
 
 ## How It Works
 
