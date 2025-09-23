@@ -233,7 +233,7 @@ function extractSectionsAndSettings(content, filename) {
             }
           });
         } else if (rootKey === 'sections' && typeof rootValue === 'object' && rootValue !== null) {
-          // Extract from sections if they exist in settings_data.json
+          // Extract from sections if they exist in settings_data.json 
           Object.keys(rootValue).forEach(sectionKey => {
             const section = rootValue[sectionKey];
             
