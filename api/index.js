@@ -334,7 +334,7 @@ module.exports = async (req, res) => {
       console.log('🔄 === PROCESSING THEME FILES WITH SHOPIFY API ===');
       
       // 🕒 Add configurable delay to allow GitHub → Shopify theme sync to complete
-      const SHOPIFY_SYNC_DELAY = 15000; // Default 15 seconds for GitHub sync
+      const SHOPIFY_SYNC_DELAY = 30000; // Default 30 seconds for GitHub sync
       console.log(`⏳ Waiting ${SHOPIFY_SYNC_DELAY}ms for Shopify theme sync to complete...`);
       await new Promise(resolve => setTimeout(resolve, SHOPIFY_SYNC_DELAY));
       console.log('✅ Delay complete, proceeding with Shopify API calls');
