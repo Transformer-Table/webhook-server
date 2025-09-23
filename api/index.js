@@ -150,67 +150,6 @@ async function sendToAppsScript(extractedData, branchConfig, branchName, updated
 
   console.log(`📧 Sending ${extractedData.length} extracted settings to Apps Script...`);
 
-  // 🔧 If too many settings, chunk them to prevent rate limiting
-  const CHUNK_SIZE = 100; // Process 100 settings at a time
-  
-  if (extractedData.length > CHUNK_SIZE) {
-    console.log(`📦 Large payload detected (${extractedData.length} settings). Chunking into smaller requests...`);
-    
-    const chunks = [];
-    for (let i = 0; i < extractedData.length; i += CHUNK_SIZE) {
-      chunks.push(extractedData.slice(i, i + CHUNK_SIZE));
-    }
-    
-    console.log(`📦 Split into ${chunks.length} chunks of max ${CHUNK_SIZE} settings each`);
-    
-    let totalUpdated = 0;
-    let totalSkipped = 0;
-    let totalErrors = 0;
-    
-    // Process chunks sequentially with delays
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      console.log(`📦 Processing chunk ${i + 1}/${chunks.length} (${chunk.length} settings)...`);
-      
-      try {
-        const chunkResult = await sendChunkToAppsScript(appsScriptUrl, chunk, branchConfig, branchName, updatedFiles, i + 1);
-        const parsed = JSON.parse(chunkResult);
-        
-        totalUpdated += parsed.updated || 0;
-        totalSkipped += parsed.skipped || 0;
-        totalErrors += parsed.errors || 0;
-        
-        // Add delay between chunks to prevent rate limiting
-        if (i < chunks.length - 1) {
-          console.log(`⏳ Waiting 2 seconds before next chunk...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
-      } catch (error) {
-        console.log(`❌ Chunk ${i + 1} failed: ${error.message}`);
-        totalErrors += chunk.length; // Count all as errors
-      }
-    }
-    
-    const finalResult = {
-      status: 'success',
-      message: `Processed ${extractedData.length} settings in ${chunks.length} chunks`,
-      updated: totalUpdated,
-      skipped: totalSkipped,
-      errors: totalErrors,
-      chunked: true,
-      chunks: chunks.length
-    };
-    
-    console.log(`✅ Chunked processing complete:`, JSON.stringify(finalResult));
-    return JSON.stringify(finalResult);
-  }
-  
-  // Single request for smaller payloads
-  return await sendChunkToAppsScript(appsScriptUrl, extractedData, branchConfig, branchName, updatedFiles, 1);
-}
-
-async function sendChunkToAppsScript(appsScriptUrl, extractedData, branchConfig, branchName, updatedFiles, chunkNumber) {
   const fetch = (await import('node-fetch')).default;
   
   const payload = {
@@ -221,53 +160,27 @@ async function sendChunkToAppsScript(appsScriptUrl, extractedData, branchConfig,
       themeName: branchConfig.themeName,
       branch: branchName,
       extractedSettings: extractedData,
-      timestamp: new Date().toISOString(),
-      chunkNumber: chunkNumber
+      timestamp: new Date().toISOString()
     },
     updatedFiles: updatedFiles
   };
 
-  // Retry logic for rate limiting
-  let attempts = 0;
-  const maxAttempts = 3;
-  
-  while (attempts < maxAttempts) {
-    try {
-      const response = await fetch(appsScriptUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
+  const response = await fetch(appsScriptUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload)
+  });
 
-      if (response.ok) {
-        const result = await response.text();
-        console.log(`✅ Apps Script response (chunk ${chunkNumber}):`, result);
-        return result;
-      }
-      
-      // Handle rate limiting
-      if (response.status === 429 || response.status === 503) {
-        attempts++;
-        const waitTime = Math.pow(2, attempts) * 1000; // Exponential backoff
-        console.log(`⏳ Rate limited (${response.status}). Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-      
-      throw new Error(`Apps Script request failed: ${response.status} ${response.statusText}`);
-      
-    } catch (error) {
-      attempts++;
-      if (attempts >= maxAttempts) {
-        throw error;
-      }
-      
-      console.log(`⏳ Request failed. Retrying in 2 seconds... (${attempts}/${maxAttempts})`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
+  if (!response.ok) {
+    throw new Error(`Apps Script request failed: ${response.status} ${response.statusText}`);
   }
+
+  const result = await response.text();
+  console.log(`✅ Apps Script response:`, result);
+  
+  return result;
 }
 
 module.exports = async (req, res) => {
