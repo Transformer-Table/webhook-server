@@ -182,6 +182,7 @@ function extractSectionsAndSettings(content, filename) {
         
         if (rootKey === 'current' && typeof rootValue === 'object' && rootValue !== null) {
           // Extract from 'current' object (theme settings)
+          console.log(`📋 Processing 'current' object with ${Object.keys(rootValue).length} keys:`, Object.keys(rootValue).slice(0, 10));
           Object.keys(rootValue).forEach(settingKey => {
             if (settingKey === 'sections' && typeof rootValue[settingKey] === 'object') {
               // Handle nested sections within current
@@ -219,6 +220,7 @@ function extractSectionsAndSettings(content, filename) {
               });
             } else if (typeof rootValue[settingKey] !== 'object') {
               // Handle regular current settings
+              console.log(`📋 Extracting current setting: ${settingKey} = ${rootValue[settingKey]}`);
               extractedData.push({
                 filename: filename,
                 sectionName: 'current',
@@ -226,6 +228,8 @@ function extractSectionsAndSettings(content, filename) {
                 settingName: settingKey,
                 settingValue: rootValue[settingKey]
               });
+            } else {
+              console.log(`📋 Skipping current object setting: ${settingKey} (is object)`);
             }
           });
         } else if (rootKey === 'sections' && typeof rootValue === 'object' && rootValue !== null) {
