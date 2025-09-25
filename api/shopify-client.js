@@ -24,7 +24,7 @@ const themeFileQuery = `
 // Query to get themes (to find the correct theme ID)
 const themesQuery = `
   query getThemes {
-    themes(first: 50) {
+    themes(first: 150) {
       nodes {
         id
         name
